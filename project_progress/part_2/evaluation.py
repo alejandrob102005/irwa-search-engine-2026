@@ -1,5 +1,9 @@
 import numpy as np
-from indexing import search_tfidf
+
+if __package__:
+    from .indexing import search_tfidf
+else:
+    from indexing import search_tfidf
 
 # P@K
 def precision_at_k(doc_score, k):
