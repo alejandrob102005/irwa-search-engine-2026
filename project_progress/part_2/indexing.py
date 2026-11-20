@@ -179,10 +179,3 @@ def search_tfidf(query, preprocessor, index, tf, idf):
     ranked_docs = rank_documents(query_terms, docs, index, tf, idf)
     return ranked_docs
 
-
-# entry point of the template for the web app (part 4), not implemented yet
-def search_in_corpus(query):
-    # 1. create create_tfidf_index
-
-    # 2. apply ranking
-    return ""
