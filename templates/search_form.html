@@ -1,0 +1,17 @@
+{# Part 4: search box used in the home page and at the top of the results page #}
+<form method="GET" action="/search" class="search-form">
+    <div class="d-flex">
+        <input class="form-control mr-2" name="search-query" type="search" placeholder="Search products, e.g. men black leather jacket"
+               aria-label="Search" value="{{ output.query if output else '' }}" required {% if not output %}autofocus{% endif %}>
+        <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+    <div class="search-options mt-2">
+        <label class="mr-2">Ranking:</label>
+        <select name="method" class="custom-select custom-select-sm w-auto mr-3">
+            {% for key, name in methods.items() %}
+                <option value="{{ key }}" {% if output and output.method == key %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+        <label><input type="checkbox" name="only-available" {% if only_available %}checked{% endif %}> Only in stock</label>
+    </div>
+</form>

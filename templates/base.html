@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {# Using Bootstrap v4.6.1 #}
     <link rel="stylesheet" href="{{ url_for('static',filename='styles/bootstrap.min.css') }}">
@@ -23,7 +24,10 @@
         {% endblock %}
     </div>
     <hr>
-    <div class='centered'>Information Retrieval and Web Analytics</div>
+    <div class='centered'>
+        <a href="/">Search</a> &middot; <a href="/stats">Stats</a> &middot; <a href="/dashboard">Dashboard</a>
+        <br>Information Retrieval and Web Analytics
+    </div>
 </div>
 </body>
 </html>

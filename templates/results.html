@@ -1,27 +1,60 @@
 {% extends "base.html" %}
 {% block page_title %}{{ page_title }}{% endblock %}
 {% block content %}
-    Found <strong>{{ found_counter }}</strong> results...
+    {% include 'search_form.html' %}
     <hr>
-    {% if rag_response %}
-        <div class="mb-4 p-3" style="border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;">
-            <h5>AI-Generated Summary:</h5>
-            <p>{{ rag_response }}</p>
+
+    {# information about the search #}
+    <div class="search-info">
+        Found <strong>{{ found_counter }}</strong> products for "<strong>{{ output.query }}</strong>"
+        {% if found_counter > results_list|length %} (showing the top {{ results_list|length }}){% endif %}
+        &middot; {{ methods[output.method] }} &middot; {{ '%.0f' % output.elapsed_ms }} ms
+    </div>
+    {% if output.match_mode == 'or' %}
+        <div class="alert alert-warning mt-2 mb-0">
+            No product contains all the words of your query, so we show products that contain some of them.
+            {% if output.unknown_terms %}Words not found in any product: <em>{{ output.unknown_terms|join(', ') }}</em>.{% endif %}
         </div>
     {% endif %}
-    <hr>
-    {% for item in results_list %}
-        <div class="pb-3">
-            <div class="doc-title">
-                <a href="{{ item.url }}">{{ item.title }}...
-                </a>
-            </div>
-            <div class="doc-desc">
-                {{ item.doc_date }} — {{ item.description }}
-            </div>
 
+    {# LLM summary of the results (RAG) #}
+    {% if rag_response %}
+        <div class="rag-box mt-3">
+            <h5>AI-generated summary</h5>
+            <div class="rag-text">{{ rag_response }}</div>
         </div>
+    {% endif %}
 
+    {# list of results, in the order of the ranking #}
+    {% if not results_list %}
+        <p class="mt-4">No products found. Try other or fewer words, or another spelling.</p>
+    {% endif %}
+    {% for item in results_list %}
+        {% set doc = item.doc %}
+        <div class="result">
+            <div class="result-rank">{{ item.rank }}</div>
+            {% if doc.images %}
+                <img class="result-img" src="{{ doc.images[0] }}" alt="" loading="lazy" onerror="this.style.display='none'">
+            {% endif %}
+            <div class="result-body">
+                <div class="doc-title"><a href="{{ item.details_url }}">{{ doc.title }}</a></div>
+                <div class="doc-meta">
+                    {% if doc.brand %}<span>{{ doc.brand }}</span> &middot; {% endif %}{{ doc.sub_category }}
+                    {% if doc.out_of_stock %}<span class="badge badge-secondary ml-1">Out of stock</span>{% endif %}
+                </div>
+                <div class="doc-price">
+                    {% if doc.selling_price %}<strong>₹{{ '{:,.0f}'.format(doc.selling_price) }}</strong>{% endif %}
+                    {% if doc.actual_price and doc.discount %}<s class="text-muted ml-1">₹{{ '{:,.0f}'.format(doc.actual_price) }}</s>{% endif %}
+                    {% if doc.discount %}<span class="discount ml-1">{{ '%.0f' % doc.discount }}% off</span>{% endif %}
+                    {% if doc.average_rating %}<span class="rating ml-2">{{ doc.average_rating }} ★</span>{% else %}<span class="text-muted ml-2">no rating</span>{% endif %}
+                </div>
+                <div class="doc-desc">{{ (doc.description or 'No description.')|truncate(220) }}</div>
+                <div class="doc-links">
+                    <a href="{{ item.details_url }}">Details</a> &middot;
+                    <a href="{{ doc.url }}" target="_blank" rel="noopener">View on original website ↗</a>
+                    <span class="text-muted small ml-2">score {{ '%.3f' % item.score }}</span>
+                </div>
+            </div>
+        </div>
     {% endfor %}
 {% endblock %}
-

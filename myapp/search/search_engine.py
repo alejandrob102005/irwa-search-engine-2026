@@ -2,6 +2,7 @@ import random
 import numpy as np
 
 from myapp.search.objects import Document
+from project_progress.part_4.web_search import WebSearchEngine
 
 
 def dummy_search(corpus: dict, search_id, num_results=20):
@@ -23,14 +24,17 @@ def dummy_search(corpus: dict, search_id, num_results=20):
 
 
 class SearchEngine:
-    """Class that implements the search engine logic"""
+    """Class that implements the search engine logic (Part 4: project_progress/part_4/web_search.py)"""
 
-    def search(self, search_query, search_id, corpus):
+    def __init__(self):
+        # the index of Part 3 is built only once, when the web app starts
+        self.engine = WebSearchEngine()
+
+    def search(self, search_query, search_id, corpus, method='custom', top_k=20, only_available=False):
+        """
+        :return: SearchOutput with the ranked results (list of SearchResult) and information
+                 about the search (number of products found, AND/OR mode, time...)
+        """
         print("Search query:", search_query)
-
-        results = []
-        ### You should implement your search logic here:
-        results = dummy_search(corpus, search_id)  # replace with call to search algorithm
-
-        # results = search_in_corpus(search_query)
-        return results
+        return self.engine.search(search_query, corpus, search_id=search_id, method=method,
+                                  top_k=top_k, only_available=only_available)

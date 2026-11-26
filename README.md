@@ -32,10 +32,11 @@
 ├── templates                # HTML templates for the Flask application
 ├── static                   # Static assets (images, CSS)
 ├── data                     # Datasets (not uploaded to GitHub, see Usage)
-├── project_progress         # Solutions of Parts 1, 2 and 3 (report, notebook and README)
+├── project_progress         # Solutions of Parts 1 to 4 (code and README of each part)
 │   ├── part_1
 │   ├── part_2
-│   └── part_3
+│   ├── part_3
+│   └── part_4               # Search engine of the web app (web_search.py) and optimization check
 ├── config.yaml              # Paths, indexed fields, test and validation queries
 ├── .env.example             # Example of environment variables (copy it to .env)
 ├── .gitignore
@@ -70,7 +71,9 @@ pip freeze > requirements.txt
    - **Part 1**: `project_progress/part_1/eda.ipynb` creates `data/processed_fashion_products.json` the first time and runs the EDA.
    - **Part 2**: `python project_progress/part_2/main.py` builds the index, runs the test queries and computes the evaluation
      metrics. `project_progress/part_2/indexing_stats.ipynb` computes all the tables and figures of the report.
-3. Part 4 (web application) is started with:
+   - **Part 3**: `python project_progress/part_3/main.py`.
+3. Part 4 (web application) uses the search engine in `project_progress/part_4/web_search.py`
+   (see `project_progress/part_4/README.md` for the options). It is started with:
 ```bash
 python web_app.py
 ```

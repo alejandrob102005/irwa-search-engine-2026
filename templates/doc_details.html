@@ -1,18 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Document Detail - IRWA Search Engine</title>
-</head>
-<body>
-<div><a href="/" >Home</a></div>
-<div><a href="/stats" >Stats</a></div>
-<div><a href="/dashboard" >Dashboard</a></div>
-<h1>Document Detail Page</h1>
-<p>This is a placeholder for document details.</p>
-<p>Here you can display more information about the document.</p>
-<p>For example, you might show the full text of the document, metadata, or other relevant details.</p>
-<p>You can also include links to related documents or resources.</p>
-<p>Feel free to customize this page to fit the needs of your application.</p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block page_title %}{{ page_title }}{% endblock %}
+{% block content %}
+    {% if back_url %}<a href="{{ back_url }}">← Back to results</a>{% else %}<a href="/">← New search</a>{% endif %}
+
+    <h3 class="mt-3">{{ doc.title }}</h3>
+    <div class="doc-meta mb-2">
+        {% if doc.brand %}{{ doc.brand }} &middot; {% endif %}{{ doc.category }} › {{ doc.sub_category }}
+        {% if rank %}&middot; position {{ rank }} in your results{% endif %}
+    </div>
+
+    {# images of the product (the dataset has small 128x128 links, we ask the CDN for a bigger version) #}
+    {% if doc.images %}
+        <div class="detail-images mb-3">
+            {% for img in doc.images %}
+                <img src="{{ img.replace('/128/128/', '/416/416/') }}" alt="" loading="lazy" onerror="this.style.display='none'">
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="doc-price detail-price">
+        {% if doc.selling_price %}<strong>₹{{ '{:,.0f}'.format(doc.selling_price) }}</strong>{% endif %}
+        {% if doc.actual_price and doc.discount %}<s class="text-muted ml-1">₹{{ '{:,.0f}'.format(doc.actual_price) }}</s>{% endif %}
+        {% if doc.discount %}<span class="discount ml-1">{{ '%.0f' % doc.discount }}% off</span>{% endif %}
+        {% if doc.average_rating %}<span class="rating ml-2">{{ doc.average_rating }} ★</span>{% else %}<span class="text-muted ml-2">no rating</span>{% endif %}
+        {% if doc.out_of_stock %}<span class="badge badge-secondary ml-2">Out of stock</span>{% else %}<span class="badge badge-success ml-2">In stock</span>{% endif %}
+    </div>
+
+    <a class="btn btn-primary btn-sm my-3" href="{{ doc.url }}" target="_blank" rel="noopener">View on original website ↗</a>
+
+    <h5>Description</h5>
+    <p>{{ doc.description or 'No description.' }}</p>
+
+    <h5>Product information</h5>
+    <table class="table table-sm detail-table">
+        <tr><th>Product ID</th><td>{{ doc.pid }}</td></tr>
+        <tr><th>Brand</th><td>{{ doc.brand or '-' }}</td></tr>
+        <tr><th>Category</th><td>{{ doc.category or '-' }}</td></tr>
+        <tr><th>Sub-category</th><td>{{ doc.sub_category or '-' }}</td></tr>
+        <tr><th>Seller</th><td>{{ doc.seller or '-' }}</td></tr>
+        <tr><th>Selling price</th><td>{% if doc.selling_price %}₹{{ '{:,.0f}'.format(doc.selling_price) }}{% else %}-{% endif %}</td></tr>
+        <tr><th>Actual price</th><td>{% if doc.actual_price %}₹{{ '{:,.0f}'.format(doc.actual_price) }}{% else %}-{% endif %}</td></tr>
+        <tr><th>Discount</th><td>{% if doc.discount %}{{ '%.0f' % doc.discount }}%{% else %}-{% endif %}</td></tr>
+        <tr><th>Average rating</th><td>{{ doc.average_rating or '-' }}</td></tr>
+        <tr><th>Availability</th><td>{{ 'Out of stock' if doc.out_of_stock else 'In stock' }}</td></tr>
+    </table>
+
+    {% if doc.product_details %}
+        <h5>Product details</h5>
+        <table class="table table-sm detail-table">
+            {% for key, value in doc.product_details.items() %}
+                <tr><th>{{ key }}</th><td>{{ value }}</td></tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %}

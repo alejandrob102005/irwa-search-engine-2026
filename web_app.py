@@ -3,12 +3,13 @@ from json import JSONEncoder
 
 import httpagentparser  # for getting the user agent as json
 from flask import Flask, render_template, session
-from flask import request
+from flask import request, redirect, url_for, abort
 
 from myapp.analytics.analytics_data import AnalyticsData, ClickedDoc
 from myapp.search.load_corpus import load_corpus
 from myapp.search.objects import Document, StatsDocument
 from myapp.search.search_engine import SearchEngine
+from project_progress.part_4.web_search import RANKING_METHODS
 from myapp.generation.rag import RAGGenerator
 from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env
@@ -62,50 +63,57 @@ def index():
 
     print("Remote IP: {} - JSON user browser {}".format(user_ip, agent))
     print(session)
-    return render_template('index.html', page_title="Welcome")
+    return render_template('index.html', page_title="Welcome", methods=RANKING_METHODS)
 
 
-@app.route('/search', methods=['POST'])
+# Part 4: GET is also accepted, so the results page has its own URL (/search?search-query=...)
+# and the browser "back" button works without re-sending a form
+@app.route('/search', methods=['GET', 'POST'])
 def search_form_post():
-    
-    search_query = request.form['search-query']
+
+    search_query = request.values.get('search-query', '').strip()
+    method = request.values.get('method', 'custom')
+    only_available = request.values.get('only-available') == 'on'
+    if not search_query:
+        return redirect(url_for('index'))
 
     session['last_search_query'] = search_query
+    # used by the "back to results" link of the details page
+    session['last_search_url'] = url_for('search_form_post', **{'search-query': search_query, 'method': method},
+                                         **({'only-available': 'on'} if only_available else {}))
 
     search_id = analytics_data.save_query_terms(search_query)
 
-    results = search_engine.search(search_query, search_id, corpus)
+    output = search_engine.search(search_query, search_id, corpus, method=method, top_k=20,
+                                  only_available=only_available)
 
-    # generate RAG response based on user query and retrieved results
-    rag_response = rag_generator.generate_response(search_query, results)
-    print("RAG response:", rag_response)
+    # generate RAG response based on user query and retrieved results (only if there are results)
+    rag_response = None
+    if output.results:
+        rag_response = rag_generator.generate_response(search_query, output.results)
+        print("RAG response:", rag_response)
 
-    found_count = len(results)
-    session['last_found_count'] = found_count
+    session['last_found_count'] = output.total_found
 
     print(session)
 
-    return render_template('results.html', results_list=results, page_title="Results", found_counter=found_count, rag_response=rag_response)
+    return render_template('results.html', page_title="Results", output=output, results_list=output.results,
+                           found_counter=output.total_found, rag_response=rag_response,
+                           methods=RANKING_METHODS, only_available=only_available)
 
 
 @app.route('/doc_details', methods=['GET'])
 def doc_details():
-    """
-    Show document details page
-    ### Replace with your custom logic ###
-    """
-
-    # getting request parameters:
-    # user = request.args.get('user')
+    """Document details page: shows all the information of the product in the corpus."""
     print("doc details session: ")
     print(session)
 
-    res = session["some_var"]
-    print("recovered var from session:", res)
-
     # get the query string parameters from request
-    clicked_doc_id = request.args["pid"]
-    print("click in id={}".format(clicked_doc_id))
+    clicked_doc_id = request.args.get("pid")
+    if clicked_doc_id not in corpus:
+        abort(404)
+    print("click in id={} (search_id={}, rank={})".format(clicked_doc_id, request.args.get("search_id"),
+                                                          request.args.get("rank")))
 
     # store data in statistics table 1
     if clicked_doc_id in analytics_data.fact_clicks.keys():
@@ -115,16 +123,12 @@ def doc_details():
 
     print("fact_clicks count for id={} is {}".format(clicked_doc_id, analytics_data.fact_clicks[clicked_doc_id]))
     print(analytics_data.fact_clicks)
-    return render_template('doc_details.html')
+    return render_template('doc_details.html', page_title="Product details", doc=corpus[clicked_doc_id],
+                           rank=request.args.get("rank"), back_url=session.get('last_search_url'))
 
 
 @app.route('/stats', methods=['GET'])
 def stats():
-    """
-    Show simple statistics example. ### Replace with yourdashboard ###
-    :return:
-    """
-
     docs = []
     for doc_id in analytics_data.fact_clicks:
         row: Document = corpus[doc_id]
