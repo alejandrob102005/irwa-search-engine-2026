@@ -40,7 +40,8 @@ rag_generator = RAGGenerator()
 # load documents corpus into memory.
 full_path = os.path.realpath(__file__)
 path, filename = os.path.split(full_path)
-file_path = path + "/" + os.getenv("DATA_FILE_PATH")
+data_file_path = os.getenv("DATA_FILE_PATH") or "data/fashion_products_dataset.json"
+file_path = os.path.join(path, data_file_path)
 corpus = load_corpus(file_path)
 # Log first element of corpus to verify it loaded correctly:
 print("\nCorpus is loaded... \n First element:\n", list(corpus.values())[0])

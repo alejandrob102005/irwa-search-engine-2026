@@ -1,13 +1,4 @@
-"""
-Part 4 - Checks the optimizations of the search engine (used in the report).
 
-For some queries it compares the Part 3 BM25 / custom ranking with the Part 4 version:
-  - the ranking must be exactly the same (same products in the same order),
-  - the time of the Part 4 version should be much lower.
-It also shows the AND -> OR fallback for a query with no product containing all the terms.
-
-Run from the repository root:  python project_progress/part_4/optimization_check.py
-"""
 import sys
 import time
 from pathlib import Path
