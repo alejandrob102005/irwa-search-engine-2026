@@ -26,7 +26,7 @@
         {% if doc.out_of_stock %}<span class="badge badge-secondary ml-2">Out of stock</span>{% else %}<span class="badge badge-success ml-2">In stock</span>{% endif %}
     </div>
 
-    <a class="btn btn-primary btn-sm my-3" href="{{ doc.url }}" target="_blank" rel="noopener">View on original website ↗</a>
+    <a class="btn btn-primary btn-sm my-3" href="{{ url_for('go_to_product', pid=doc.pid, search_id=search_id, rank=rank) }}" target="_blank" rel="noopener">View on original website ↗</a>
 
     <h5>Description</h5>
     <p>{{ doc.description or 'No description.' }}</p>

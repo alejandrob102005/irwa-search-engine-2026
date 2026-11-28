@@ -9,23 +9,181 @@
 {% endblock %}
 
 {% block content %}
+    <div class="d-flex justify-content-between align-items-center">
+        <h3>Dashboard</h3>
+        <div>
+            {% if not simulated_sessions %}
+                <form method="POST" action="/simulate" class="d-inline">
+                    <button class="btn btn-outline-secondary btn-sm" type="submit">Generate simulated data</button>
+                </form>
+            {% endif %}
+            <a class="btn btn-outline-secondary btn-sm" href="/export">Export data (JSON)</a>
+        </div>
+    </div>
 
-    <!--
-    Examples of what to show in Dashboard:
+    {% if simulated_sessions %}
+        <div class="alert alert-info mt-3 mb-0">
+            Includes <strong>{{ simulated_sessions }}</strong> simulated sessions (generated traffic, not real users).
+        </div>
+    {% endif %}
 
-    - Ranking of visited documents (from results page)
-    - Visitor's preferred browsers
-    - Visitor's city (from IP)
-    - preferred queries ranking
-    - preferred terms
-    - etc.
+    {% if not data %}
+        <p class="mt-3">No data yet: make some searches and click on some results, then come back to this page.</p>
+    {% else %}
+    {% set k = data.kpis %}
 
-    -->
+    {# ---------- key indicators ---------- #}
+    <div class="kpi-grid mt-3">
+        <div class="kpi"><div class="kpi-value">{{ k.sessions }}</div><div class="kpi-label">Sessions</div></div>
+        <div class="kpi"><div class="kpi-value">{{ k.queries }}</div><div class="kpi-label">Searches</div></div>
+        <div class="kpi"><div class="kpi-value">{{ k.queries_per_session }}</div><div class="kpi-label">Searches per session</div></div>
+        <div class="kpi"><div class="kpi-value">{{ k.ctr }}%</div><div class="kpi-label">Click-through rate</div></div>
+        <div class="kpi"><div class="kpi-value">{{ k.zero_results }}%</div><div class="kpi-label">Searches without results</div></div>
+        <div class="kpi"><div class="kpi-value">{{ k.mean_click_rank if k.mean_click_rank is not none else '-' }}</div><div class="kpi-label">Mean position of clicks</div></div>
+        <div class="kpi"><div class="kpi-value">{{ '%s s' % k.median_dwell if k.median_dwell is not none else '-' }}</div><div class="kpi-label">Median dwell time</div></div>
+        <div class="kpi"><div class="kpi-value">{{ k.external_clicks }}</div><div class="kpi-label">Clicks to original website</div></div>
+    </div>
+    <p class="chart-note">
+        <strong>Click-through rate</strong>: % of searches with at least one click on a result.
+        <strong>Searches without results</strong>: % of searches that found nothing ({{ k.or_mode }}% more only found
+        products with some of the words, OR mode). <strong>Mean position of clicks</strong>: the lower, the better the
+        ranking puts the interesting products at the top. <strong>Dwell time</strong>: time on a product before coming
+        back to the results. <strong>Clicks to original website</strong>: users who went to buy the product.
+    </p>
 
-    <h3>Dashboard</h3>
-    <iframe src="/plot_number_of_views" width="600" height="400" style="border: none;"></iframe>
+    {# ---------- search engine ---------- #}
+    <h4 class="section-title">Searches</h4>
+    <div class="chart-grid">
+        <div>
+            <canvas id="topQueries"></canvas>
+            <p class="chart-note">Most frequent searches: what users look for most.</p>
+        </div>
+        <div>
+            <canvas id="topTerms"></canvas>
+            <p class="chart-note">Most used words in the searches (as written by the user).</p>
+        </div>
+        <div>
+            <canvas id="queryLength"></canvas>
+            <p class="chart-note">Number of words per search. Short searches are usually generic, long ones more specific.</p>
+        </div>
+        <div>
+            <canvas id="methods"></canvas>
+            <p class="chart-note">Ranking method chosen by the users in the search page.</p>
+        </div>
+    </div>
 
+    <h6>Searches without results or in OR mode</h6>
+    {% if data.failed_queries %}
+        <table class="table table-sm">
+            <tr><th>Search</th><th>Results</th><th>Mode</th><th>Times</th></tr>
+            {% for f in data.failed_queries %}
+                <tr><td>{{ f.query }}</td><td>{{ f.results }}</td><td>{{ f.mode or '-' }}</td><td>{{ f.count }}</td></tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p class="chart-note">All the searches found products with all their words.</p>
+    {% endif %}
+    <p class="chart-note">Products that users look for and the catalogue does not have (or does not describe with those words).</p>
 
+    {# ---------- results and clicks ---------- #}
+    <h4 class="section-title">Clicks on results</h4>
+    <div class="chart-grid">
+        <div>
+            <canvas id="clicksByRank"></canvas>
+            <p class="chart-note">Clicks by position in the ranking. Most clicks are usually on the first positions (position bias).</p>
+        </div>
+        <div>
+            <canvas id="dwell"></canvas>
+            <p class="chart-note">Time spent on a product before coming back to the results. Very short times suggest the product was not what the user wanted; "no return" means the user did not come back to those results.</p>
+        </div>
+    </div>
+
+    <h6>Most clicked products</h6>
+    <table class="table table-sm">
+        <tr><th>Product</th><th>Clicks</th></tr>
+        {% for d in data.top_documents %}
+            <tr><td><a href="/doc_details?pid={{ d.pid }}">{{ d.title }}</a></td><td>{{ d.clicks }}</td></tr>
+        {% endfor %}
+    </table>
+
+    {# ---------- visitors ---------- #}
+    <h4 class="section-title">Visitors</h4>
+    <div class="chart-grid three">
+        <div><canvas id="browsers"></canvas></div>
+        <div><canvas id="os"></canvas></div>
+        <div><canvas id="devices"></canvas></div>
+    </div>
+    <p class="chart-note">Browser, operating system and type of device of the sessions.</p>
+    <div class="chart-grid">
+        <div>
+            <canvas id="hours"></canvas>
+            <p class="chart-note">Requests by hour of the day: when the web is used the most.</p>
+        </div>
+        <div>
+            {% if data.countries.labels %}
+                <canvas id="countries"></canvas>
+            {% else %}
+                <p class="chart-note mt-4">No country yet: local visits (127.0.0.1) have no location.</p>
+            {% endif %}
+            <p class="chart-note">Sessions by country, obtained from the IP address.</p>
+        </div>
+    </div>
+
+    {# ---------- missions ---------- #}
+    <h4 class="section-title">Missions</h4>
+    <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-value">{{ data.missions.total }}</div><div class="kpi-label">Missions</div></div>
+        <div class="kpi"><div class="kpi-value">{{ data.missions.research }}</div><div class="kpi-label">Research missions</div></div>
+        <div class="kpi"><div class="kpi-value">{{ data.missions.queries_per_mission }}</div><div class="kpi-label">Searches per mission</div></div>
+    </div>
+    <p class="chart-note">
+        A mission groups the searches of a user with the same goal (they share a meaningful word, e.g. "men leather jacket"
+        and "black leather jacket"). A research mission is a mission that continues in another session (another day or
+        after 30 minutes of inactivity).
+    </p>
+    {% if data.missions.research_examples %}
+        <table class="table table-sm">
+            <tr><th>Mission</th><th>Sessions</th><th>Searches</th></tr>
+            {% for m in data.missions.research_examples %}
+                <tr><td>{{ m.mission }}</td><td>{{ m.sessions }}</td><td>{{ m.queries|join(' → ') }}</td></tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <script>
+        const data = {{ data|tojson }};
+        const RED = '#c8102e';
+        const PALETTE = ['#c8102e', '#404246', '#6c757d', '#198754', '#0d6efd', '#ffc107', '#20c997', '#6f42c1'];
+
+        function drawChart(id, type, values, title, horizontal) {
+            const canvas = document.getElementById(id);
+            if (!canvas) return;
+            const round = type === 'doughnut';
+            new Chart(canvas, {
+                type: type,
+                data: {
+                    labels: values.labels,
+                    datasets: [{data: values.values, backgroundColor: round ? PALETTE : RED}]
+                },
+                options: {
+                    indexAxis: horizontal ? 'y' : 'x',
+                    plugins: {title: {display: true, text: title}, legend: {display: round}},
+                    scales: round ? {} : {x: {ticks: {precision: 0}}, y: {ticks: {precision: 0}}}
+                }
+            });
+        }
+
+        drawChart('topQueries', 'bar', data.top_queries, 'Top searches', true);
+        drawChart('topTerms', 'bar', data.top_terms, 'Top words', true);
+        drawChart('queryLength', 'bar', data.query_length, 'Words per search');
+        drawChart('methods', 'doughnut', data.methods, 'Ranking method');
+        drawChart('clicksByRank', 'bar', data.clicks_by_rank, 'Clicks by position');
+        drawChart('dwell', 'bar', data.dwell, 'Dwell time');
+        drawChart('browsers', 'doughnut', data.browsers, 'Browser');
+        drawChart('os', 'doughnut', data.os, 'Operating system');
+        drawChart('devices', 'doughnut', data.devices, 'Device');
+        drawChart('hours', 'bar', data.hours, 'Activity by hour');
+        drawChart('countries', 'bar', data.countries, 'Countries', true);
+    </script>
+    {% endif %}
 {% endblock %}
-
-

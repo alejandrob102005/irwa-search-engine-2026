@@ -51,10 +51,18 @@
                 <div class="doc-desc">{{ (doc.description or 'No description.')|truncate(220) }}</div>
                 <div class="doc-links">
                     <a href="{{ item.details_url }}">Details</a> &middot;
-                    <a href="{{ doc.url }}" target="_blank" rel="noopener">View on original website ↗</a>
+                    <a href="{{ url_for('go_to_product', pid=doc.pid, search_id=search_id, rank=item.rank) }}" target="_blank" rel="noopener">View on original website ↗</a>
                     <span class="text-muted small ml-2">score {{ '%.3f' % item.score }}</span>
                 </div>
             </div>
         </div>
     {% endfor %}
+
+    <script>
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                navigator.sendBeacon('/returned');
+            }
+        });
+    </script>
 {% endblock %}
